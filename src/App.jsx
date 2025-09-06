@@ -3,13 +3,45 @@ import { Plus, BookOpen, Video, FileText, Code } from 'lucide-react';
 import Column from './components/Column';
 
 const LearningPlanner = () => {
+  const [resources, setResources] = useState([]);
+  const [activeTimerId, setActiveTimerId] = useState(null); // Only one timer at a time for simplicity
+
+  // Expose timer and estimate handlers for ResourceCard via window (for demo, ideally use context or props)
+  useEffect(() => {
+    window.onStartTimer = startTimer;
+    window.onStopTimer = stopTimer;
+    window.onEditEstimate = editEstimate;
+    return () => {
+      window.onStartTimer = undefined;
+      window.onStopTimer = undefined;
+      window.onEditEstimate = undefined;
+    };
+  }, [resources]);
   // Add missing functions after refactor
+  // Helper to parse time string (e.g., '2 hours, 30 minutes') to minutes
+  const parseTimeEstimate = (str) => {
+    let total = 0;
+    const hourMatch = str.match(/(\d+)\s*hour/);
+    if (hourMatch) total += parseInt(hourMatch[1]) * 60;
+    const minMatch = str.match(/(\d+)\s*min/);
+    if (minMatch) total += parseInt(minMatch[1]);
+    const minMatch2 = str.match(/(\d+)\s*minute/);
+    if (minMatch2) total += parseInt(minMatch2[1]);
+    return total;
+  };
+
+  // Add resource with initial time tracking fields
   const addResource = () => {
     if (newResource.title.trim() && newResource.description.trim() && newResource.estimatedTime.trim()) {
       const resource = {
         id: Date.now(),
         ...newResource,
-        status: 'to-learn'
+        status: 'to-learn',
+        actualTime: 0, // in minutes
+        sessions: [], // {start, end, duration}
+        estimateLog: [{ value: newResource.estimatedTime, timestamp: Date.now() }],
+        timerActive: false,
+        timerStart: null
       };
       setResources(prev => [...prev, resource]);
       setNewResource({ title: '', type: 'article', description: '', estimatedTime: '' });
@@ -44,7 +76,6 @@ const LearningPlanner = () => {
   const getResourcesByStatus = (status) => {
     return resources.filter(resource => resource.status === status);
   };
-  const [resources, setResources] = useState([]);
 
   // Load resources from localStorage on mount
   useEffect(() => {
@@ -54,7 +85,7 @@ const LearningPlanner = () => {
     } else {
       // If no resources, initialize with default
       setResources([]);
-      
+
     }
   }, []);
 
@@ -70,6 +101,58 @@ const LearningPlanner = () => {
     description: '',
     estimatedTime: ''
   });
+  // Timer logic
+  const startTimer = (id) => {
+    setResources(prev => prev.map(r =>
+      r.id === id ? { ...r, timerActive: true, timerStart: Date.now() } : r
+    ));
+    setActiveTimerId(id);
+  };
+
+  const stopTimer = (id) => {
+    setResources(prev => prev.map(r => {
+      if (r.id === id && r.timerActive && r.timerStart) {
+        const now = Date.now();
+        const duration = Math.round((now - r.timerStart) / 60000); // minutes
+        const newActual = r.actualTime + duration;
+        return {
+          ...r,
+          timerActive: false,
+          timerStart: null,
+          actualTime: newActual,
+          sessions: [...r.sessions, { start: r.timerStart, end: now, duration }]
+        };
+      }
+      return r;
+    }));
+    setActiveTimerId(null);
+  };
+
+  // Auto-prompt/auto-save after inactivity (5 min)
+  useEffect(() => {
+    let timer;
+    const active = resources.find(r => r.timerActive && r.timerStart);
+    if (active) {
+      timer = setTimeout(() => {
+        alert('Timer has been running for a while. Do you want to stop and save your progress?');
+        stopTimer(active.id);
+      }, 5 * 60 * 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resources]);
+
+  // Edit estimate and log change
+  const editEstimate = (id, newEstimate) => {
+    setResources(prev => prev.map(r =>
+      r.id === id
+        ? {
+          ...r,
+          estimatedTime: newEstimate,
+          estimateLog: [...r.estimateLog, { value: newEstimate, timestamp: Date.now() }]
+        }
+        : r
+    ));
+  };
   const [draggedItem, setDraggedItem] = useState(null);
 
   const typeIcons = {
@@ -81,6 +164,13 @@ const LearningPlanner = () => {
 
   // ...existing code...
 
+  // Helper for color indicator
+  const getTimeStatus = (resource) => {
+    const est = parseTimeEstimate(resource.estimatedTime);
+    if (resource.actualTime === 0) return 'gray';
+    if (resource.actualTime <= est) return 'green';
+    return 'red';
+  };
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">

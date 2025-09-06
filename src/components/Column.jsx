@@ -23,7 +23,17 @@ const Column = ({ title, status, resources, bgColor, handleDragOver, handleDrop,
                     </div>
                 ) : (
                     resources.map(resource => (
-                        <ResourceCard key={resource.id} resource={resource} handleDragStart={handleDragStart} typeIcons={typeIcons} />
+                        <ResourceCard
+                            key={resource.id}
+                            resource={{
+                                ...resource,
+                                onStartTimer: (id) => typeof window.onStartTimer === 'function' ? window.onStartTimer(id) : undefined,
+                                onStopTimer: (id) => typeof window.onStopTimer === 'function' ? window.onStopTimer(id) : undefined,
+                                onEditEstimate: (id, val) => typeof window.onEditEstimate === 'function' ? window.onEditEstimate(id, val) : undefined
+                            }}
+                            handleDragStart={handleDragStart}
+                            typeIcons={typeIcons}
+                        />
                     ))
                 )}
             </div>
