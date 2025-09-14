@@ -13,6 +13,7 @@ const Column = ({ title, status, resources, bgColor, handleDragOver, handleDrop,
                 </h2>
             </div>
             <div
+                data-testid={`column-${status}`}
                 className="p-4 min-h-96"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, status)}

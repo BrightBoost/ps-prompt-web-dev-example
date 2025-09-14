@@ -2,8 +2,7 @@ import React from 'react';
 import { Clock, GripVertical } from 'lucide-react';
 
 const ResourceCard = ({ resource, handleDragStart, typeIcons }) => {
-    const IconComponent = typeIcons[resource.type];
-    // Color indicator for time status
+    const IconComponent = resource?.type ? typeIcons[resource.type] : undefined;    // Color indicator for time status
     let timeColor = 'bg-gray-200';
     if (resource.actualTime > 0) {
         const estMin = resource.estimatedTime ? parseInt(resource.estimatedTime) : 0;
@@ -33,8 +32,7 @@ const ResourceCard = ({ resource, handleDragStart, typeIcons }) => {
         >
             <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center space-x-2 flex-1">
-                    <IconComponent className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                    <h3 className="font-medium text-gray-900 text-sm leading-tight">{resource.title}</h3>
+                    {IconComponent ? <IconComponent className="w-4 h-4 text-blue-600 flex-shrink-0" /> : null}                    <h3 className="font-medium text-gray-900 text-sm leading-tight">{resource.title}</h3>
                 </div>
                 <GripVertical className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2" />
             </div>

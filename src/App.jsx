@@ -3,7 +3,15 @@ import { Plus, BookOpen, Video, FileText, Code } from 'lucide-react';
 import Column from './components/Column';
 
 const LearningPlanner = () => {
-  const [resources, setResources] = useState([]);
+  const [resources, setResources] = useState(() => {
+    try {
+      const stored = localStorage.getItem('learningResources');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [activeTimerId, setActiveTimerId] = useState(null); // Only one timer at a time for simplicity
 
   // Expose timer and estimate handlers for ResourceCard via window (for demo, ideally use context or props)
@@ -51,12 +59,12 @@ const LearningPlanner = () => {
 
   const handleDragStart = (e, resource) => {
     setDraggedItem(resource);
-    e.dataTransfer.effectAllowed = 'move';
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
   };
 
   const handleDragOver = (e) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
   };
 
   const handleDrop = (e, newStatus) => {
@@ -76,18 +84,6 @@ const LearningPlanner = () => {
   const getResourcesByStatus = (status) => {
     return resources.filter(resource => resource.status === status);
   };
-
-  // Load resources from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem('learningResources');
-    if (stored) {
-      setResources(JSON.parse(stored));
-    } else {
-      // If no resources, initialize with default
-      setResources([]);
-
-    }
-  }, []);
 
   // Save resources to localStorage whenever they change
   useEffect(() => {
